@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
 
 # 🔍 ScriptSearcher (discord.py)
-
+**Sistema de páginas adicionado!**
 ```
 import discord
 from discord.ext import commands
@@ -57,66 +57,43 @@ import requests
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
-script_cache = {}
+cache = {}
 
 @bot.event
 async def on_ready():
     print(f'Logado como {bot.user}')
     await bot.tree.sync()
 
-def buscar(busca, pagina=1):
-    url = f"https://scriptblox.com/api/script/search?q={busca}&script%20name=5&page={pagina}"
-    resposta = requests.get(url)
-    dados = resposta.json()
-    return dados.get('result', {}).get('scripts', []), dados.get('result', {}).get('totalPages', 1)
+def buscar(term, pag=1):
+    url = f"https://scriptblox.com/api/script/search?q={term}&script%20name=5&page={pag}"
+    resp = requests.get(url)
+    data = resp.json()
+    return data.get('result', {}).get('scripts', []), data.get('result', {}).get('totalPages', 1)
 
-async def autocompletar(interaction: discord.Interaction, current: str):
+async def auto(interaction: discord.Interaction, current: str):
     scripts, _ = buscar(current)
-    script_cache[interaction.user.id] = scripts
+    cache[interaction.user.id] = scripts
     return [app_commands.Choice(name=script['title'], value=script['title']) for script in scripts[:25]]
 
 @bot.tree.command(name="buscar", description="Busca scripts na ScriptBlox")
-@app_commands.describe(busca="Termo de busca para os scripts")
-@app_commands.autocomplete(busca=autocompletar)
-async def buscar_cmd(interaction: discord.Interaction, busca: str):
-    scripts = script_cache.get(interaction.user.id, [])
-    script = next((s for s in scripts if s['title'].lower() == busca.lower()), None)
+@app_commands.describe(term="Termo de busca para os scripts", pag="Número da página de resultados")
+@app_commands.autocomplete(term=auto)
+async def buscar_cmd(interaction: discord.Interaction, term: str, pag: int = 1):
+    scripts, total_pages = buscar(term, pag)
+    cache[interaction.user.id] = scripts
     
-    if script:
-        embed = discord.Embed(title=script['title'], color=discord.Color.blue())
-        embed.add_field(name="Jogo", value=script['game']['name'], inline=False)
-        embed.add_field(name="Tipo", value=script['scriptType'], inline=False)
-        embed.add_field(name="Visualizações", value=script['views'], inline=False)
-        embed.add_field(name="Criado", value=script['createdAt'], inline=False)
-        embed.add_field(name="Atualizado", value=script['updatedAt'], inline=False)
-        embed.add_field(name="Verificado", value="Sim" if script['verified'] else "Não", inline=False)
-        embed.add_field(name="Chave Necessária", value="Sim" if script['key'] else "Não", inline=False)
-        embed.add_field(name="Script", value=f"```{script['script']}```", inline=False)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    else:
-        if scripts:
-            options = [discord.SelectOption(label=s['title'], description=s['game']['name'], value=str(i)) for i, s in enumerate(scripts[:25])]
-            select = discord.ui.Select(placeholder="Selecione um script...", options=options)
+    if not scripts:
+        await interaction.response.send_message("Nenhum script encontrado.", ephemeral=True)
+        return
 
-            async def select_callback(interaction: discord.Interaction):
-                index = int(select.values[0])
-                script = scripts[index]
-                embed = discord.Embed(title=script['title'], color=discord.Color.blue())
-                embed.add_field(name="Jogo", value=script['game']['name'], inline=False)
-                embed.add_field(name="Tipo", value=script['scriptType'], inline=False)
-                embed.add_field(name="Visualizações", value=script['views'], inline=False)
-                embed.add_field(name="Criado", value=script['createdAt'], inline=False)
-                embed.add_field(name="Atualizado", value=script['updatedAt'], inline=False)
-                embed.add_field(name="Verificado", value="Sim" if script['verified'] else "Não", inline=False)
-                embed.add_field(name="Chave Necessária", value="Sim" if script['key'] else "Não", inline=False)
-                embed.add_field(name="Script", value=f"```{script['script']}```", inline=False)
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+    embed = discord.Embed(title=f"(Página {pag} de {total_pages})", color=discord.Color.blue())
+    for script in scripts:
+        embed.add_field(name=script['title'], value=f"Jogo: {script['game']['name']} | Tipo: {script['scriptType']} | Visualizações: {script['views']}", inline=False)
+    
+    if total_pages > 1:
+        embed.set_footer(text=f"Use /buscar term:{term} pag:<número> para navegar entre as páginas")
 
-            select.callback = select_callback
-            view = discord.ui.View()
-            view.add_item(select)
-            await interaction.response.send_message("Selecione um script para ver mais detalhes:", view=view, ephemeral=True)
-        else:
-            await interaction.response.send_message("Nenhum script encontrado.", ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 bot.run('TOKEN')
+```
