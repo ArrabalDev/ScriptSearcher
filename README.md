@@ -46,6 +46,7 @@ if __name__ == "__main__":
     principal()
 
 # 🔍 ScriptSearcher (discord.py)
+
 ```
 import discord
 from discord.ext import commands
