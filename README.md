@@ -43,7 +43,8 @@ def principal():
             break
 
 if __name__ == "__main__":
-    principal()```
+    principal()
+```
 
 
 # 🔍 ScriptSearcher (discord.py)
