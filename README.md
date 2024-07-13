@@ -75,7 +75,7 @@ async def autocompletar(interaction: discord.Interaction, current: str):
     script_cache[interaction.user.id] = scripts
     return [app_commands.Choice(name=script['title'], value=script['title']) for script in scripts[:25]]
 
-@bot.tree.command(name="buscar_scripts", description="Busca scripts na ScriptBlox")
+@bot.tree.command(name="buscar", description="Busca scripts na ScriptBlox")
 @app_commands.describe(busca="Termo de busca para os scripts")
 @app_commands.autocomplete(busca=autocompletar)
 async def buscar_cmd(interaction: discord.Interaction, busca: str):
