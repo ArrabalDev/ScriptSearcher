@@ -48,6 +48,7 @@ if __name__ == "__main__":
 
 
 # 🔍 ScriptSearcher (discord.py)
+    # LOGS
 **Sistema de páginas adicionado!**
 ```
 import discord
